@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:paddingHorizontal="10dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal"
+            android:layout_marginTop="48dp" android:layout_marginBottom="14dp" android:layout_marginStart="6dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Chand?!" android:textColor="#FFFFFF"
+                android:textSize="34sp" android:textStyle="bold" android:fontFamily="sans-serif-medium"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp"
+                android:text="By Ronixel" android:textColor="#8E8E93" android:textSize="11sp"/>
+        </LinearLayout>
+        <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent">
+            <ProgressBar android:id="@+id/spinner" style="?android:attr/progressBarStyleSmall"
+                android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="14dp" android:indeterminateTint="#FFFFFF" android:visibility="invisible"/>
+            <com.example.nerkh.PullScrollView android:id="@+id/pull" android:layout_width="match_parent" android:layout_height="match_parent"
+                android:scrollbars="none" android:overScrollMode="never">
+                <GridLayout android:id="@+id/grid" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:columnCount="2" android:paddingBottom="110dp"/>
+            </com.example.nerkh.PullScrollView>
+        </FrameLayout>
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/pill" android:layout_width="match_parent" android:layout_height="54dp" android:layout_gravity="bottom"
+        android:layout_margin="18dp" android:background="@drawable/pill_bg" android:gravity="center_vertical" android:elevation="8dp">
+        <TextView android:id="@+id/plus" android:layout_width="68dp" android:layout_height="match_parent" android:gravity="center"
+            android:text="+" android:textColor="#FFFFFF" android:textSize="28sp"/>
+        <TextView android:id="@+id/status" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+            android:gravity="center" android:textColor="#8E8E93" android:textSize="13sp"/>
+        <TextView android:id="@+id/more" android:layout_width="68dp" android:layout_height="match_parent" android:gravity="center"
+            android:text="•••" android:textColor="#FFFFFF" android:textSize="18sp"/>
+    </LinearLayout>
+
+    <View android:id="@+id/menuDismiss" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:clickable="true" android:visibility="gone"/>
+    <LinearLayout android:id="@+id/menuCard" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end" android:layout_marginEnd="18dp" android:layout_marginBottom="84dp"
+        android:orientation="vertical" android:background="@drawable/menu_bg" android:paddingVertical="6dp"
+        android:elevation="10dp" android:visibility="gone">
+        <TextView android:id="@+id/mi_refresh" android:layout_width="220dp" android:layout_height="wrap_content"
+            android:padding="16dp" android:text="Refresh now" android:textColor="#FFFFFF" android:textSize="16sp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#2C2C2E"/>
+        <TextView android:id="@+id/mi_choose" android:layout_width="220dp" android:layout_height="wrap_content"
+            android:padding="16dp" android:text="Choose currencies" android:textColor="#FFFFFF" android:textSize="16sp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#2C2C2E"/>
+        <TextView android:id="@+id/mi_all" android:layout_width="220dp" android:layout_height="wrap_content"
+            android:padding="16dp" android:text="Show all currencies" android:textColor="#FFFFFF" android:textSize="16sp"/>
+    </LinearLayout>
+
+    <View android:id="@+id/scrim" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:background="#B3000000" android:clickable="true" android:visibility="gone"/>
+    <LinearLayout android:id="@+id/sheet" android:layout_width="match_parent" android:layout_height="600dp"
+        android:layout_gravity="bottom" android:orientation="vertical" android:background="@drawable/sheet_bg"
+        android:clickable="true" android:visibility="gone">
+        <View android:layout_width="40dp" android:layout_height="5dp" android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp" android:background="@drawable/handle_bg"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:paddingHorizontal="22dp" android:paddingTop="16dp" android:paddingBottom="8dp">
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                android:text="Currencies" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"/>
+            <TextView android:id="@+id/done" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:background="@drawable/btn_gold" android:paddingHorizontal="20dp" android:paddingVertical="9dp"
+                android:text="Done" android:textColor="#000000" android:textSize="15sp" android:textStyle="bold"/>
+        </LinearLayout>
+        <ScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:scrollbars="none"
+            android:overScrollMode="never">
+            <LinearLayout android:id="@+id/sheetList" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:paddingBottom="24dp"/>
+        </ScrollView>
+    </LinearLayout>
+</FrameLayout>

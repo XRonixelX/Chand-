@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:background="@drawable/card_bg" android:padding="14dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="top">
+            <TextView android:id="@+id/icon" android:layout_width="36dp" android:layout_height="36dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="20sp" android:textStyle="bold" android:includeFontPadding="false"/>
+            <TextView android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="end">
+                <TextView android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#EBEBF5" android:textSize="14sp" android:maxLines="1"/>
+                <TextView android:id="@+id/code" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8E8E93" android:textSize="11sp"/>
+            </LinearLayout>
+        </LinearLayout>
+        <TextView android:id="@+id/change" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:textSize="13sp" android:textStyle="bold"/>
+        <TextView android:id="@+id/price" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="29sp" android:maxLines="1" android:includeFontPadding="false"/>
+    </LinearLayout>

@@ -1,0 +1,266 @@
+package com.example.nerkh
+
+import android.app.Activity
+import android.content.Intent
+import android.content.res.ColorStateList
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
+import android.widget.FrameLayout
+import android.widget.GridLayout
+import android.widget.LinearLayout
+import android.widget.Switch
+import android.widget.TextView
+import kotlin.concurrent.thread
+import kotlin.math.min
+
+class MainActivity : Activity() {
+    private val h = Handler(Looper.getMainLooper())
+    private lateinit var grid: GridLayout
+    private lateinit var status: TextView
+    private lateinit var pull: PullScrollView
+    private lateinit var scrim: View
+    private lateinit var sheet: View
+    private lateinit var sheetList: LinearLayout
+    private lateinit var menuCard: View
+    private lateinit var menuDismiss: View
+    private var all: List<Rate> = emptyList()
+    private var shown: List<String> = emptyList()
+    private val cardViews = HashMap<String, View>()
+    private var sheetOpen = false
+    private var menuOpen = false
+    private var sheetH = 0
+    private val tick = object : Runnable { override fun run() { fetch(); h.postDelayed(this, 30_000) } }
+
+    private fun dp(x: Int) = (x * resources.displayMetrics.density).toInt()
+
+    override fun onCreate(b: Bundle?) {
+        super.onCreate(b)
+        setContentView(R.layout.activity_main)
+        grid = findViewById(R.id.grid)
+        status = findViewById(R.id.status)
+        pull = findViewById(R.id.pull)
+        pull.spinner = findViewById(R.id.spinner)
+        pull.onRefresh = { status.text = "Updating…"; fetch() }
+        scrim = findViewById(R.id.scrim)
+        sheet = findViewById(R.id.sheet)
+        sheetList = findViewById(R.id.sheetList)
+        menuCard = findViewById(R.id.menuCard)
+        menuDismiss = findViewById(R.id.menuDismiss)
+
+        val plus = findViewById<View>(R.id.plus)
+        val more = findViewById<View>(R.id.more)
+        val done = findViewById<View>(R.id.done)
+        status.setOnClickListener { pull.startRefresh() }
+        plus.setOnClickListener { openSheet() }
+        more.setOnClickListener { openMenu() }
+        done.setOnClickListener { closeSheet() }
+        scrim.setOnClickListener { closeSheet() }
+        sheet.setOnClickListener { }
+        menuDismiss.setOnClickListener { closeMenu() }
+        findViewById<View>(R.id.mi_refresh).setOnClickListener { closeMenu(); pull.startRefresh() }
+        findViewById<View>(R.id.mi_choose).setOnClickListener { closeMenu(); openSheet() }
+        findViewById<View>(R.id.mi_all).setOnClickListener {
+            closeMenu(); prefs().edit().remove("sel").apply(); render()
+        }
+        bounce(plus, 0.8f); bounce(more, 0.8f); bounce(done, 0.9f)
+
+        val pill = findViewById<View>(R.id.pill)
+        pill.translationY = dp(130).toFloat()
+        pill.animate().translationY(0f).setStartDelay(200).setDuration(650)
+            .setInterpolator(OvershootInterpolator(1.1f)).start()
+
+        all = Rates.cached(this)
+        render()
+    }
+
+    override fun onResume() { super.onResume(); h.post(tick) }
+    override fun onPause() { super.onPause(); h.removeCallbacks(tick) }
+
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        when {
+            sheetOpen -> closeSheet()
+            menuOpen -> closeMenu()
+            else -> super.onBackPressed()
+        }
+    }
+
+    private fun prefs() = getSharedPreferences("ui", 0)
+
+    private fun fetch() {
+        thread {
+            val list = Rates.fetch(this)
+            runOnUiThread {
+                if (list != null) {
+                    all = list
+                    render()
+                    sendBroadcast(Intent(this, RatesWidget::class.java).setAction(RatesWidget.REDRAW))
+                } else status.text = "offline"
+                pull.endRefresh()
+            }
+        }
+    }
+
+    private fun selection(): Set<String>? = prefs().getString("sel", null)?.split(",")?.toSet()
+
+    private fun setVisible(code: String, on: Boolean) {
+        val cat = Rates.catalog.map { it.code }
+        val cur = (selection() ?: cat.toSet()).toMutableSet()
+        if (on) cur.add(code) else cur.remove(code)
+        if (cur.size == cat.size) prefs().edit().remove("sel").apply()
+        else prefs().edit().putString("sel", cat.filter { it in cur }.joinToString(",")).apply()
+    }
+
+    // ---------------- کارت‌ها ----------------
+    private fun fill(v: View, r: Rate) {
+        val icon = v.findViewById<TextView>(R.id.icon)
+        icon.text = r.icon
+        if (r.bg != 0) icon.setBackgroundResource(r.bg) else icon.background = null
+        v.findViewById<TextView>(R.id.name).text = r.name
+        v.findViewById<TextView>(R.id.code).text = r.code
+        val c = v.findViewById<TextView>(R.id.change)
+        c.text = Rates.changeText(r); c.setTextColor(Rates.changeColor(r))
+        v.findViewById<TextView>(R.id.price).text = Rates.priceText(r)
+    }
+
+    private fun render() {
+        val sel = selection()
+        val visible = all.filter { sel == null || it.code in sel }
+        val codes = visible.map { it.code }
+        if (codes == shown && grid.childCount == codes.size) {
+            // همون کارت‌ها: فقط عددها آپدیت می‌شن، بدون پرش
+            for (r in visible) cardViews[r.code]?.let { fill(it, r) }
+        } else {
+            grid.removeAllViews(); cardViews.clear(); shown = codes
+            val inf = LayoutInflater.from(this)
+            visible.forEachIndexed { i, r ->
+                val v = inf.inflate(R.layout.item_rate, grid, false)
+                fill(v, r)
+                v.isClickable = true
+                bounce(v, 0.96f)
+                val lp = GridLayout.LayoutParams(GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f))
+                lp.width = 0; lp.setMargins(6, 6, 6, 6)
+                grid.addView(v, lp)
+                cardViews[r.code] = v
+                v.alpha = 0f; v.translationY = dp(26).toFloat(); v.scaleX = 0.94f; v.scaleY = 0.94f
+                v.animate().alpha(1f).translationY(0f).scaleX(1f).scaleY(1f)
+                    .setStartDelay(min(i, 12) * 40L).setDuration(420)
+                    .setInterpolator(DecelerateInterpolator(2f)).start()
+            }
+        }
+        status.text = Rates.ago(this)
+    }
+
+    // ---------------- انیمیشن لمس ----------------
+    private fun bounce(v: View, s: Float) {
+        v.setOnTouchListener { view, e ->
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> view.animate().scaleX(s).scaleY(s).setStartDelay(0).setDuration(90)
+                    .setInterpolator(DecelerateInterpolator()).start()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> view.animate().scaleX(1f).scaleY(1f)
+                    .setStartDelay(0).setDuration(300).setInterpolator(OvershootInterpolator(3f)).start()
+            }
+            false
+        }
+    }
+
+    // ---------------- صفحه انتخاب ارزها (پایین‌کش) ----------------
+    private fun buildRows() {
+        sheetList.removeAllViews()
+        val sel = selection()
+        for (c in Rates.catalog) {
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            row.setPadding(dp(22), dp(10), dp(22), dp(10))
+
+            val icon = TextView(this)
+            icon.layoutParams = LinearLayout.LayoutParams(dp(38), dp(38))
+            icon.gravity = Gravity.CENTER
+            icon.text = c.icon
+            icon.textSize = 19f
+            icon.setTextColor(-1)
+            if (c.bg != 0) icon.setBackgroundResource(c.bg)
+
+            val col = LinearLayout(this)
+            col.orientation = LinearLayout.VERTICAL
+            val clp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            clp.marginStart = dp(14)
+            col.layoutParams = clp
+            val n = TextView(this); n.text = c.name; n.textSize = 16f; n.setTextColor(-1)
+            val k = TextView(this); k.text = c.code; k.textSize = 12f; k.setTextColor(0xFF8E8E93.toInt())
+            col.addView(n); col.addView(k)
+
+            val sw = Switch(this)
+            sw.isChecked = sel == null || c.code in sel
+            sw.thumbTintList = ColorStateList.valueOf(-1)
+            sw.trackTintList = ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                intArrayOf(0xFF30D158.toInt(), 0xFF3A3A3C.toInt()))
+            sw.setOnCheckedChangeListener { _, on -> setVisible(c.code, on) }
+            row.setOnClickListener { sw.toggle() }
+
+            row.addView(icon); row.addView(col); row.addView(sw)
+            sheetList.addView(row)
+        }
+    }
+
+    private fun openSheet() {
+        if (sheetOpen) return
+        sheetOpen = true
+        buildRows()
+        sheetH = (resources.displayMetrics.heightPixels * 0.78f).toInt()
+        (sheet.layoutParams as FrameLayout.LayoutParams).height = sheetH
+        sheet.requestLayout()
+        scrim.visibility = View.VISIBLE; scrim.alpha = 0f
+        scrim.animate().alpha(1f).setDuration(280).start()
+        sheet.visibility = View.VISIBLE; sheet.translationY = sheetH.toFloat()
+        sheet.animate().translationY(0f).setDuration(480).setInterpolator(DecelerateInterpolator(2.2f)).start()
+        for (i in 0 until sheetList.childCount) {
+            val v = sheetList.getChildAt(i)
+            v.alpha = 0f; v.translationY = dp(20).toFloat()
+            v.animate().alpha(1f).translationY(0f).setStartDelay(160L + min(i, 10) * 30L)
+                .setDuration(340).setInterpolator(DecelerateInterpolator()).start()
+        }
+    }
+
+    private fun closeSheet() {
+        if (!sheetOpen) return
+        sheetOpen = false
+        scrim.animate().alpha(0f).setDuration(240).withEndAction { scrim.visibility = View.GONE }.start()
+        sheet.animate().translationY(sheetH.toFloat()).setDuration(300).setInterpolator(AccelerateInterpolator(1.6f))
+            .withEndAction { sheet.visibility = View.GONE; render() }.start()
+    }
+
+    // ---------------- منوی ••• ----------------
+    private fun openMenu() {
+        if (menuOpen) return
+        menuOpen = true
+        menuDismiss.visibility = View.VISIBLE
+        menuCard.alpha = 0f
+        menuCard.visibility = View.VISIBLE
+        menuCard.post {
+            menuCard.pivotX = menuCard.width.toFloat(); menuCard.pivotY = menuCard.height.toFloat()
+            menuCard.scaleX = 0.5f; menuCard.scaleY = 0.5f
+            menuCard.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(320)
+                .setInterpolator(OvershootInterpolator(1.4f)).start()
+        }
+    }
+
+    private fun closeMenu() {
+        if (!menuOpen) return
+        menuOpen = false
+        menuDismiss.visibility = View.GONE
+        menuCard.animate().alpha(0f).scaleX(0.7f).scaleY(0.7f).setDuration(160)
+            .withEndAction { menuCard.visibility = View.GONE }.start()
+    }
+}
