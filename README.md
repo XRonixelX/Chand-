@@ -89,7 +89,7 @@ Issues and pull requests are welcome. Good first ideas: more assets, a light the
 
 ## نصب
 
-1. از بخش [Releases](../../releases) فایل `app-debug.apk` رو دانلود کن.
+1. از بخش [Releases](../../releases) فایل `Chand.apk` رو دانلود کن.
 2. روی گوشی بازش کن و اگه خواست، اجازه نصب از این منبع رو بده.
 3. برای ویجت: روی صفحه اصلی نگه دار ← **Widgets** ← **Chand?!**
 
