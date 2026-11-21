@@ -22,24 +22,11 @@ Dollar, euro, gold, coins and crypto in a clean, pure-black app, plus a home-scr
 
 ## Install
 
-1. Open the [Releases](../../releases) page and download the latest `app-debug.apk`.
+1. Open the [Releases](../../releases) page and download the latest `Chand.apk`.
 2. Open it on your phone. If Android asks, allow installing from this source.
 3. To add the widget: long-press the home screen → **Widgets** → **Chand?!**.
 
 Requires Android 7.0 (API 24) or newer.
-
-## Build it yourself
-
-**Option A: GitHub Actions (no Android Studio needed)**
-
-1. Fork this repo.
-2. Open the **Actions** tab, choose **Build APK**, and click **Run workflow** (it also runs on every push).
-3. When it finishes, download `nerkh-apk` from the run's **Artifacts** section. The APK is inside the zip.
-
-**Option B: Android Studio**
-
-1. Open the project folder.
-2. Let Gradle sync, then **Build → Build APK(s)**.
 
 ## Customize
 
