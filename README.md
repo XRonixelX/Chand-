@@ -95,11 +95,6 @@ Issues and pull requests are welcome. Good first ideas: more assets, a light the
 
 نیاز به اندروید ۷ یا بالاتر.
 
-## ساخت از روی سورس
-
-بدون Android Studio: ریپو رو Fork کن، توی تب **Actions** روی **Build APK** و بعد **Run workflow** بزن، و آخرش `nerkh-apk` رو از بخش Artifacts دانلود کن.
-یا پوشه رو توی Android Studio باز کن و **Build → Build APK(s)** رو بزن.
-
 ## شخصی‌سازی
 
 منبع داده و لیست ارزها بالای فایل `Rates.kt` هستن. برای عوض کردن ارزهای ویجت، لیست `show` رو توی `RatesWidget.kt` تغییر بده.
