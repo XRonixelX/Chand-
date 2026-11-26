@@ -3,6 +3,7 @@ package com.example.nerkh
 import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -104,6 +105,7 @@ class MainActivity : Activity() {
                     all = list
                     render()
                     sendBroadcast(Intent(this, RatesWidget::class.java).setAction(RatesWidget.REDRAW))
+                    sendBroadcast(Intent(this, RatesWidgetSingle::class.java).setAction(RatesWidgetSingle.REDRAW))
                 } else status.text = "offline"
                 pull.endRefresh()
             }
@@ -121,7 +123,7 @@ class MainActivity : Activity() {
     }
 
     // ---------------- کارت‌ها ----------------
-    private fun fill(v: View, r: Rate) {
+    private fun fill(v: View, r: Rate, animateChange: Boolean = false) {
         val icon = v.findViewById<TextView>(R.id.icon)
         icon.text = r.icon
         if (r.bg != 0) icon.setBackgroundResource(r.bg) else icon.background = null
@@ -129,7 +131,15 @@ class MainActivity : Activity() {
         v.findViewById<TextView>(R.id.code).text = r.code
         val c = v.findViewById<TextView>(R.id.change)
         c.text = Rates.changeText(r); c.setTextColor(Rates.changeColor(r))
-        v.findViewById<TextView>(R.id.price).text = Rates.priceText(r)
+        val pr = v.findViewById<TextView>(R.id.price)
+        pr.text = Rates.priceText(r)
+
+        if (animateChange) {
+            pr.alpha = 0.4f
+            pr.scaleX = 0.95f
+            pr.scaleY = 0.95f
+            pr.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(350).setInterpolator(DecelerateInterpolator()).start()
+        }
     }
 
     private fun render() {
@@ -137,24 +147,23 @@ class MainActivity : Activity() {
         val visible = all.filter { sel == null || it.code in sel }
         val codes = visible.map { it.code }
         if (codes == shown && grid.childCount == codes.size) {
-            // همون کارت‌ها: فقط عددها آپدیت می‌شن، بدون پرش
-            for (r in visible) cardViews[r.code]?.let { fill(it, r) }
+            for (r in visible) cardViews[r.code]?.let { fill(it, r, animateChange = true) }
         } else {
             grid.removeAllViews(); cardViews.clear(); shown = codes
             val inf = LayoutInflater.from(this)
             visible.forEachIndexed { i, r ->
                 val v = inf.inflate(R.layout.item_rate, grid, false)
-                fill(v, r)
+                fill(v, r, animateChange = false)
                 v.isClickable = true
-                bounce(v, 0.96f)
+                bounce(v, 0.95f)
                 val lp = GridLayout.LayoutParams(GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f))
                 lp.width = 0; lp.setMargins(6, 6, 6, 6)
                 grid.addView(v, lp)
                 cardViews[r.code] = v
-                v.alpha = 0f; v.translationY = dp(26).toFloat(); v.scaleX = 0.94f; v.scaleY = 0.94f
+                v.alpha = 0f; v.translationY = dp(28).toFloat(); v.scaleX = 0.92f; v.scaleY = 0.92f
                 v.animate().alpha(1f).translationY(0f).scaleX(1f).scaleY(1f)
-                    .setStartDelay(min(i, 12) * 40L).setDuration(420)
-                    .setInterpolator(DecelerateInterpolator(2f)).start()
+                    .setStartDelay(min(i, 14) * 35L).setDuration(450)
+                    .setInterpolator(DecelerateInterpolator(2.2f)).start()
             }
         }
         status.text = Rates.ago(this)
@@ -173,44 +182,70 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------- صفحه انتخاب ارزها (پایین‌کش) ----------------
+    // ---------------- صفحه انتخاب ارزها ----------------
     private fun buildRows() {
         sheetList.removeAllViews()
         val sel = selection()
-        for (c in Rates.catalog) {
-            val row = LinearLayout(this)
-            row.orientation = LinearLayout.HORIZONTAL
-            row.gravity = Gravity.CENTER_VERTICAL
-            row.setPadding(dp(22), dp(10), dp(22), dp(10))
+        val allItems = Rates.catalog
 
-            val icon = TextView(this)
-            icon.layoutParams = LinearLayout.LayoutParams(dp(38), dp(38))
-            icon.gravity = Gravity.CENTER
-            icon.text = c.icon
-            icon.textSize = 19f
-            icon.setTextColor(-1)
-            if (c.bg != 0) icon.setBackgroundResource(c.bg)
+        val groups = mapOf(
+            "Currencies" to allItems.filter { it.category == Rates.CAT_FIAT },
+            "Gold & Coins" to allItems.filter { it.category == Rates.CAT_GOLD },
+            "Cryptocurrencies" to allItems.filter { it.category == Rates.CAT_CRYPTO }
+        )
 
-            val col = LinearLayout(this)
-            col.orientation = LinearLayout.VERTICAL
-            val clp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            clp.marginStart = dp(14)
-            col.layoutParams = clp
-            val n = TextView(this); n.text = c.name; n.textSize = 16f; n.setTextColor(-1)
-            val k = TextView(this); k.text = c.code; k.textSize = 12f; k.setTextColor(0xFF8E8E93.toInt())
-            col.addView(n); col.addView(k)
+        for ((groupName, items) in groups) {
+            if (items.isEmpty()) continue
 
-            val sw = Switch(this)
-            sw.isChecked = sel == null || c.code in sel
-            sw.thumbTintList = ColorStateList.valueOf(-1)
-            sw.trackTintList = ColorStateList(
-                arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
-                intArrayOf(0xFF30D158.toInt(), 0xFF3A3A3C.toInt()))
-            sw.setOnCheckedChangeListener { _, on -> setVisible(c.code, on) }
-            row.setOnClickListener { sw.toggle() }
+            val header = TextView(this).apply {
+                text = groupName
+                setTextColor(Color.parseColor("#8E8E93"))
+                textSize = 12f
+                setPadding(dp(22), dp(14), dp(22), dp(4))
+                isAllCaps = true
+            }
+            sheetList.addView(header)
 
-            row.addView(icon); row.addView(col); row.addView(sw)
-            sheetList.addView(row)
+            for (c in items) {
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(22), dp(9), dp(22), dp(9))
+                }
+
+                val icon = TextView(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(38), dp(38))
+                    gravity = Gravity.CENTER
+                    text = c.icon
+                    textSize = 19f
+                    setTextColor(-1)
+                    if (c.bg != 0) setBackgroundResource(c.bg)
+                }
+
+                val col = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    val clp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                    clp.marginStart = dp(14)
+                    layoutParams = clp
+                }
+                val n = TextView(this).apply { text = c.name; textSize = 16f; setTextColor(-1) }
+                val k = TextView(this).apply { text = c.code; textSize = 12f; setTextColor(0xFF8E8E93.toInt()) }
+                col.addView(n); col.addView(k)
+
+                val sw = Switch(this).apply {
+                    isChecked = sel == null || c.code in sel
+                    thumbTintList = ColorStateList.valueOf(-1)
+                    trackTintList = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                        intArrayOf(0xFF30D158.toInt(), 0xFF3A3A3C.toInt())
+                    )
+                    setOnCheckedChangeListener { _, on -> setVisible(c.code, on) }
+                }
+                row.setOnClickListener { sw.toggle() }
+
+                row.addView(icon); row.addView(col); row.addView(sw)
+                sheetList.addView(row)
+            }
         }
     }
 
@@ -218,18 +253,18 @@ class MainActivity : Activity() {
         if (sheetOpen) return
         sheetOpen = true
         buildRows()
-        sheetH = (resources.displayMetrics.heightPixels * 0.78f).toInt()
+        sheetH = (resources.displayMetrics.heightPixels * 0.82f).toInt()
         (sheet.layoutParams as FrameLayout.LayoutParams).height = sheetH
         sheet.requestLayout()
         scrim.visibility = View.VISIBLE; scrim.alpha = 0f
         scrim.animate().alpha(1f).setDuration(280).start()
         sheet.visibility = View.VISIBLE; sheet.translationY = sheetH.toFloat()
         sheet.animate().translationY(0f).setDuration(480).setInterpolator(DecelerateInterpolator(2.2f)).start()
-        for (i in 0 until sheetList.childCount) {
+        for (i in 0 until min(sheetList.childCount, 15)) {
             val v = sheetList.getChildAt(i)
             v.alpha = 0f; v.translationY = dp(20).toFloat()
-            v.animate().alpha(1f).translationY(0f).setStartDelay(160L + min(i, 10) * 30L)
-                .setDuration(340).setInterpolator(DecelerateInterpolator()).start()
+            v.animate().alpha(1f).translationY(0f).setStartDelay(140L + i * 25L)
+                .setDuration(320).setInterpolator(DecelerateInterpolator()).start()
         }
     }
 

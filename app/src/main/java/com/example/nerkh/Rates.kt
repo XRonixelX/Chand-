@@ -11,63 +11,83 @@ import java.net.URL
 import java.util.Locale
 import kotlin.math.abs
 
-/** value و change به تومان (یا دلار برای انس) هستند؛ نمایش در زمان رسم ساخته می‌شود. dec=-1 یعنی خودکار */
-data class Rate(val name: String, val code: String, val icon: String, val bg: Int,
-                val value: Double, val change: Double, val dir: Int, val dec: Int)
+/** value و change به تومان (یا دلار برای انس) هستند؛ dec=-1 یعنی خودکار */
+data class Rate(
+    val name: String,
+    val code: String,
+    val icon: String,
+    val bg: Int,
+    val value: Double,
+    val change: Double,
+    val dir: Int,
+    val dec: Int,
+    val category: String
+)
 
 object Rates {
-    // ---- تنظیمات منبع داده ----
     const val URL_JSON = "https://call3.tgju.org/ajax.json"
 
-    private class Item(val name: String, val code: String, val icon: String, val bg: Int,
-                       val keys: List<String>, val contains: String? = null,
-                       val crypto: Double = 0.0, val usd: Boolean = false)
+    const val CAT_FIAT = "Fiat"
+    const val CAT_GOLD = "Gold"
+    const val CAT_CRYPTO = "Crypto"
 
-    private fun fiat(name: String, code: String, flag: String, key: String) = Item(name, code, flag, 0, listOf(key))
+    private class Item(
+        val name: String,
+        val code: String,
+        val icon: String,
+        val bg: Int,
+        val keys: List<String>,
+        val contains: String? = null,
+        val crypto: Double = 0.0,
+        val usd: Boolean = false,
+        val category: String = CAT_FIAT
+    )
+
+    private fun fiat(name: String, code: String, flag: String, key: String) =
+        Item(name, code, flag, 0, listOf(key), category = CAT_FIAT)
+
     private fun gold(name: String, code: String, key: String, usd: Boolean = false) =
-        Item(name, code, "", R.drawable.ic_gold, listOf(key), usd = usd)
+        Item(name, code, "", R.drawable.ic_gold, listOf(key), usd = usd, category = CAT_GOLD)
 
-    // ترتیب: ۸ تای اول مثل عکس، بقیه بعدش
     private val ITEMS = listOf(
+        // اصلی و محبوب‌ترین‌ها
         fiat("US Dollar", "USD", "🇺🇸", "price_dollar_rl"),
-        fiat("Euro", "EUR", "🇪🇺", "price_eur"),
-        Item("Tether USDT", "USDT", "₮", R.drawable.ic_green, listOf("crypto-tether-irr"), "tether", 5000.0),
-        gold("Mithqal", "MITHQAL", "mesghal"),
-        fiat("British Pound", "GBP", "🇬🇧", "price_gbp"),
-        Item("Bitcoin", "BTC", "₿", R.drawable.ic_orange, listOf("crypto-bitcoin-irr"), "bitcoin", 5_000_000.0),
-        gold("Azadi", "AZADI", "sekeb"),
-        fiat("Chinese Yuan", "CNY", "🇨🇳", "price_cny"),
+        Item("Tether USDT", "USDT", "₮", R.drawable.ic_green, listOf("crypto-tether-irr"), "tether", 5000.0, category = CAT_CRYPTO),
+        gold("18K Gold Gram", "GOLD18", "geram18"),
         gold("Emami Coin", "EMAMI", "sekee"),
+        fiat("Euro", "EUR", "🇪🇺", "price_eur"),
+        fiat("UAE Dirham", "AED", "🇦🇪", "price_aed"),
+        Item("Bitcoin", "BTC", "₿", R.drawable.ic_orange, listOf("crypto-bitcoin-irr"), "bitcoin", 5_000_000.0, category = CAT_CRYPTO),
+        gold("Gold Ounce", "ONS", "ons", usd = true),
+        gold("Mithqal", "MITHQAL", "mesghal"),
+        gold("Azadi", "AZADI", "sekeb"),
         gold("Half Azadi", "NIM", "nim"),
         gold("Quarter Azadi", "ROB", "rob"),
         gold("Gram Coin", "GERAMI", "gerami"),
-        gold("18K Gold Gram", "GOLD18", "geram18"),
         gold("24K Gold Gram", "GOLD24", "geram24"),
-        gold("Gold Ounce", "ONS", "ons", usd = true),
-        Item("Ethereum", "ETH", "Ξ", R.drawable.ic_blue, listOf("crypto-ethereum-irr"), "ethereum", 1_000_000.0),
-        fiat("UAE Dirham", "AED", "🇦🇪", "price_aed"),
+        fiat("Ukrainian Hryvnia", "UAH", "🇺🇦", "price_uah"),
+        fiat("British Pound", "GBP", "🇬🇧", "price_gbp"),
         fiat("Turkish Lira", "TRY", "🇹🇷", "price_try"),
         fiat("Canadian Dollar", "CAD", "🇨🇦", "price_cad"),
         fiat("Australian Dollar", "AUD", "🇦🇺", "price_aud"),
         fiat("Swiss Franc", "CHF", "🇨🇭", "price_chf"),
+        fiat("Chinese Yuan", "CNY", "🇨🇳", "price_cny"),
         fiat("Japanese Yen", "JPY", "🇯🇵", "price_jpy"),
         fiat("Russian Ruble", "RUB", "🇷🇺", "price_rub"),
         fiat("Saudi Riyal", "SAR", "🇸🇦", "price_sar"),
         fiat("Iraqi Dinar", "IQD", "🇮🇶", "price_iqd"),
-        fiat("Afghan Afghani", "AFN", "🇦🇫", "price_afn"),
-        fiat("Indian Rupee", "INR", "🇮🇳", "price_inr"),
         fiat("Kuwaiti Dinar", "KWD", "🇰🇼", "price_kwd"),
-        fiat("Armenian Dram", "AMD", "🇦🇲", "price_amd"),
-        fiat("Azerbaijani Manat", "AZN", "🇦🇿", "price_azn"),
+        Item("Ethereum", "ETH", "Ξ", R.drawable.ic_blue, listOf("crypto-ethereum-irr"), "ethereum", 1_000_000.0, category = CAT_CRYPTO),
+        Item("Toncoin", "TON", "💎", R.drawable.ic_blue, listOf("crypto-toncoin-irr"), "toncoin", 500.0, category = CAT_CRYPTO),
+        Item("Solana", "SOL", "◎", R.drawable.ic_orange, listOf("crypto-solana-irr"), "solana", 50_000.0, category = CAT_CRYPTO),
     )
 
-    data class Cat(val code: String, val name: String, val icon: String, val bg: Int)
+    data class Cat(val code: String, val name: String, val icon: String, val bg: Int, val category: String)
 
-    /** لیست همه ارزها برای صفحه انتخاب */
-    val catalog: List<Cat> get() = ITEMS.map { Cat(it.code, it.name, it.icon, it.bg) }
+    val catalog: List<Cat> get() = ITEMS.map { Cat(it.code, it.name, it.icon, it.bg, it.category) }
 
-    const val UP = "#FF453A"     // مثل عکس: بالا قرمز
-    const val DOWN = "#30D158"   // پایین سبز
+    const val UP = "#FF453A"     // قرمز (بالا رفتن نرخ در بازار ایران)
+    const val DOWN = "#30D158"   // سبز
     private const val PREFS = "rates"
 
     private fun num(s: String?) = s?.replace(",", "")?.trim()?.toDoubleOrNull()
@@ -91,7 +111,7 @@ object Rates {
             val value = when { item.usd -> raw; inUsd -> raw * usd; else -> raw / 10 }
             val change = abs(when { item.usd -> d; inUsd -> d * usd; else -> d / 10 })
             val dir = when (o.optString("dt")) { "high" -> 1; "low" -> -1; else -> if (d > 0) 1 else if (d < 0) -1 else 0 }
-            Rate(item.name, item.code, item.icon, item.bg, value, change, dir, if (item.usd) 2 else -1)
+            Rate(item.name, item.code, item.icon, item.bg, value, change, dir, if (item.usd) 2 else -1, item.category)
         }
     }
 
@@ -116,7 +136,6 @@ object Rates {
         return when { m < 1 -> "moments ago"; m < 60 -> "$m min ago"; else -> "${m / 60} h ago" }
     }
 
-    // ---- فرمت‌دهی مثل عکس: 59,750  15.74M  3.4B ----
     private fun trimNum(s: String) = if (s.contains('.')) s.trimEnd('0').trimEnd('.') else s
     private fun fmt(d: Double, dec: Int) = trimNum(String.format(Locale.US, "%.${dec}f", d))
 
