@@ -26,9 +26,14 @@ class RatesWidget : AppWidgetProvider() {
                 for (id in ids) draw(ctx, mgr, id, list)
             }
             REFRESH -> {
+                val pending = goAsync()
                 thread {
-                    val list = Rates.fetch(ctx) ?: Rates.cached(ctx)
-                    for (id in ids) draw(ctx, mgr, id, list)
+                    try {
+                        val list = Rates.fetch(ctx) ?: Rates.cached(ctx)
+                        for (id in ids) draw(ctx, mgr, id, list)
+                    } finally {
+                        pending.finish()
+                    }
                 }
             }
         }
@@ -46,9 +51,7 @@ class RatesWidget : AppWidgetProvider() {
 
         fun updateAppWidget(ctx: Context, mgr: AppWidgetManager, widgetId: Int) {
             val list = Rates.cached(ctx)
-            if (list.isNotEmpty()) {
-                draw(ctx, mgr, widgetId, list)
-            }
+            draw(ctx, mgr, widgetId, list)
             thread {
                 val fresh = Rates.fetch(ctx)
                 if (fresh != null) {
@@ -58,26 +61,34 @@ class RatesWidget : AppWidgetProvider() {
         }
 
         private fun draw(ctx: Context, mgr: AppWidgetManager, id: Int, list: List<Rate>) {
-            val v = RemoteViews(ctx.packageName, R.layout.widget_rates)
-            val show = WidgetConfigActivity.getWidgetItems(ctx, id, isSingle = false)
+            try {
+                val v = RemoteViews(ctx.packageName, R.layout.widget_rates)
+                val show = WidgetConfigActivity.getWidgetItems(ctx, id, isSingle = false)
 
-            show.forEachIndexed { i, c ->
-                if (i < 2) {
-                    val r = list.firstOrNull { it.code == c }
-                    if (r != null) {
-                        v.setTextViewText(icon[i], r.icon)
-                        v.setInt(icon[i], "setBackgroundResource", r.bg)
-                        v.setTextViewText(name[i], r.name)
-                        v.setTextViewText(code[i], r.code)
-                        v.setTextViewText(chg[i], Rates.changeText(r))
-                        v.setTextColor(chg[i], Rates.changeColor(r))
-                        v.setTextViewText(price[i], Rates.priceText(r))
+                show.forEachIndexed { i, c ->
+                    if (i < 2) {
+                        val r = list.firstOrNull { it.code == c }
+                        if (r != null) {
+                            v.setTextViewText(icon[i], r.icon)
+                            v.setInt(icon[i], "setBackgroundResource", if (r.bg != 0) r.bg else android.R.color.transparent)
+                            v.setTextViewText(name[i], r.name)
+                            v.setTextViewText(code[i], r.code)
+                            v.setTextViewText(chg[i], Rates.changeText(r))
+                            v.setTextColor(chg[i], Rates.changeColor(r))
+                            v.setTextViewText(price[i], Rates.priceText(r))
+                        } else {
+                            v.setTextViewText(name[i], c)
+                            v.setTextViewText(code[i], "Tap to update")
+                            v.setTextViewText(price[i], "---")
+                        }
                     }
                 }
+                val f = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                v.setOnClickPendingIntent(R.id.root, PendingIntent.getActivity(ctx, id, Intent(ctx, MainActivity::class.java), f))
+                mgr.updateAppWidget(id, v)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            val f = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            v.setOnClickPendingIntent(R.id.root, PendingIntent.getActivity(ctx, id, Intent(ctx, MainActivity::class.java), f))
-            mgr.updateAppWidget(id, v)
         }
     }
 }
