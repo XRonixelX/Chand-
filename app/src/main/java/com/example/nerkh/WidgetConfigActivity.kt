@@ -101,7 +101,7 @@ class WidgetConfigActivity : Activity() {
             val header = TextView(this).apply {
                 text = groupName
                 setTextColor(Color.parseColor("#8E8E93"))
-                textSize = 13spToPx()
+                textSize = 13f
                 textAlignment = View.TEXT_ALIGNMENT_VIEW_START
                 setPadding(dp(20), dp(16), dp(20), dp(6))
                 isAllCaps = true
@@ -154,8 +154,6 @@ class WidgetConfigActivity : Activity() {
             }
         }
     }
-
-    private fun 13spToPx(): Float = 13f
 
     private fun toggle(code: String) {
         if (isSingle) {
