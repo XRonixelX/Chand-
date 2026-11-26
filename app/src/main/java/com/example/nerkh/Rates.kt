@@ -78,6 +78,7 @@ object Rates {
         fiat("Iraqi Dinar", "IQD", "🇮🇶", "price_iqd"),
         fiat("Kuwaiti Dinar", "KWD", "🇰🇼", "price_kwd"),
         Item("Ethereum", "ETH", "Ξ", R.drawable.ic_blue, listOf("crypto-ethereum-irr"), "ethereum", 1_000_000.0, category = CAT_CRYPTO),
+        Item("Litecoin", "LTC", "Ł", R.drawable.ic_blue, listOf("crypto-litecoin-irr"), "litecoin", 1_000.0, category = CAT_CRYPTO),
         Item("Toncoin", "TON", "💎", R.drawable.ic_blue, listOf("crypto-toncoin-irr"), "toncoin", 500.0, category = CAT_CRYPTO),
         Item("Solana", "SOL", "◎", R.drawable.ic_orange, listOf("crypto-solana-irr"), "solana", 50_000.0, category = CAT_CRYPTO),
     )
@@ -166,4 +167,31 @@ object Rates {
     }
 
     fun changeColor(r: Rate) = Color.parseColor(if (r.dir > 0) UP else if (r.dir < 0) DOWN else "#8E8E93")
+
+    fun tomanValue(code: String, rates: List<Rate>): Double? {
+        if (code == "IRT") return 1.0
+        val r = rates.firstOrNull { it.code == code } ?: return null
+        if (r.code == "ONS") {
+            val usd = rates.firstOrNull { it.code == "USD" }?.value ?: return null
+            return r.value * usd
+        }
+        return r.value
+    }
+
+    fun convert(amount: Double, fromCode: String, toCode: String, rates: List<Rate>): Double? {
+        val fromToman = tomanValue(fromCode, rates) ?: return null
+        val toToman = tomanValue(toCode, rates) ?: return null
+        if (toToman == 0.0) return null
+        return (amount * fromToman) / toToman
+    }
+
+    fun formatConverted(v: Double): String {
+        if (v == 0.0) return "0"
+        return when {
+            v >= 1000 -> String.format(Locale.US, "%,.2f", v).let { trimNum(it) }
+            v >= 1 -> trimNum(String.format(Locale.US, "%.4f", v))
+            v >= 0.0001 -> trimNum(String.format(Locale.US, "%.6f", v))
+            else -> trimNum(String.format(Locale.US, "%.8f", v))
+        }
+    }
 }

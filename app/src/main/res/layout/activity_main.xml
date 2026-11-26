@@ -24,11 +24,13 @@
 
     <LinearLayout android:id="@+id/pill" android:layout_width="match_parent" android:layout_height="54dp" android:layout_gravity="bottom"
         android:layout_margin="18dp" android:background="@drawable/pill_bg" android:gravity="center_vertical" android:elevation="8dp">
-        <TextView android:id="@+id/plus" android:layout_width="68dp" android:layout_height="match_parent" android:gravity="center"
+        <TextView android:id="@+id/plus" android:layout_width="56dp" android:layout_height="match_parent" android:gravity="center"
             android:text="+" android:textColor="#FFFFFF" android:textSize="28sp"/>
+        <TextView android:id="@+id/calc" android:layout_width="52dp" android:layout_height="match_parent" android:gravity="center"
+            android:text="⇄" android:textColor="#FFD60A" android:textSize="22sp" android:textStyle="bold"/>
         <TextView android:id="@+id/status" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
             android:gravity="center" android:textColor="#8E8E93" android:textSize="13sp"/>
-        <TextView android:id="@+id/more" android:layout_width="68dp" android:layout_height="match_parent" android:gravity="center"
+        <TextView android:id="@+id/more" android:layout_width="64dp" android:layout_height="match_parent" android:gravity="center"
             android:text="•••" android:textColor="#FFFFFF" android:textSize="18sp"/>
     </LinearLayout>
 
@@ -38,6 +40,9 @@
         android:layout_gravity="bottom|end" android:layout_marginEnd="18dp" android:layout_marginBottom="84dp"
         android:orientation="vertical" android:background="@drawable/menu_bg" android:paddingVertical="6dp"
         android:elevation="10dp" android:visibility="gone">
+        <TextView android:id="@+id/mi_calc" android:layout_width="220dp" android:layout_height="wrap_content"
+            android:padding="16dp" android:text="Converter" android:textColor="#FFD60A" android:textSize="16sp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#2C2C2E"/>
         <TextView android:id="@+id/mi_refresh" android:layout_width="220dp" android:layout_height="wrap_content"
             android:padding="16dp" android:text="Refresh now" android:textColor="#FFFFFF" android:textSize="16sp"/>
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#2C2C2E"/>
@@ -67,6 +72,63 @@
         <ScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:scrollbars="none"
             android:overScrollMode="never">
             <LinearLayout android:id="@+id/sheetList" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:paddingBottom="24dp"/>
+        </ScrollView>
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/convSheet" android:layout_width="match_parent" android:layout_height="600dp"
+        android:layout_gravity="bottom" android:orientation="vertical" android:background="@drawable/sheet_bg"
+        android:clickable="true" android:visibility="gone">
+        <View android:layout_width="40dp" android:layout_height="5dp" android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp" android:background="@drawable/handle_bg"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:paddingHorizontal="22dp" android:paddingTop="16dp" android:paddingBottom="12dp">
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                android:text="Converter" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"/>
+            <TextView android:id="@+id/convDone" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:background="@drawable/btn_gold" android:paddingHorizontal="20dp" android:paddingVertical="9dp"
+                android:text="Done" android:textColor="#000000" android:textSize="15sp" android:textStyle="bold"/>
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:paddingHorizontal="20dp">
+            <!-- From Card -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:background="@drawable/card_bg" android:padding="16dp" android:gravity="center_vertical">
+                <TextView android:id="@+id/convFromBtn" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="🇺🇸 USD ▾" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold"
+                    android:paddingEnd="12dp"/>
+                <EditText android:id="@+id/convInput" android:layout_width="0dp" android:layout_weight="1"
+                    android:layout_height="wrap_content" android:background="@null" android:gravity="end"
+                    android:inputType="numberDecimal" android:text="1" android:textColor="#FFFFFF"
+                    android:textColorHint="#8E8E93" android:textSize="24sp" android:fontFamily="sans-serif-medium"
+                    android:maxLines="1" android:hint="0"/>
+            </LinearLayout>
+
+            <!-- Swap Button -->
+            <TextView android:id="@+id/convSwap" android:layout_width="44dp" android:layout_height="44dp"
+                android:layout_gravity="center_horizontal" android:layout_marginVertical="8dp"
+                android:background="@drawable/card_bg" android:gravity="center"
+                android:text="⇅" android:textColor="#FFD60A" android:textSize="20sp" android:textStyle="bold"/>
+
+            <!-- To Card -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:background="@drawable/card_bg" android:padding="16dp" android:gravity="center_vertical">
+                <TextView android:id="@+id/convToBtn" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Ł LTC ▾" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold"
+                    android:paddingEnd="12dp"/>
+                <TextView android:id="@+id/convResult" android:layout_width="0dp" android:layout_weight="1"
+                    android:layout_height="wrap_content" android:gravity="end"
+                    android:text="0" android:textColor="#30D158" android:textSize="24sp" android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Currency Picker List (shown when selecting From or To) -->
+        <ScrollView android:id="@+id/convPickerScroll" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:layout_marginTop="12dp" android:scrollbars="none" android:overScrollMode="never" android:visibility="gone">
+            <LinearLayout android:id="@+id/convPickerList" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:paddingBottom="24dp"/>
         </ScrollView>
     </LinearLayout>

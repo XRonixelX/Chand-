@@ -7,6 +7,8 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -15,6 +17,7 @@ import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.LinearLayout
@@ -37,8 +40,19 @@ class MainActivity : Activity() {
     private var shown: List<String> = emptyList()
     private val cardViews = HashMap<String, View>()
     private var sheetOpen = false
+    private var convOpen = false
     private var menuOpen = false
     private var sheetH = 0
+    private lateinit var convSheet: View
+    private lateinit var convFromBtn: TextView
+    private lateinit var convToBtn: TextView
+    private lateinit var convInput: EditText
+    private lateinit var convResult: TextView
+    private lateinit var convPickerScroll: View
+    private lateinit var convPickerList: LinearLayout
+    private var convFrom = "USD"
+    private var convTo = "LTC"
+    private var pickingFrom = true
     private val tick = object : Runnable { override fun run() { fetch(); h.postDelayed(this, 30_000) } }
 
     private fun dp(x: Int) = (x * resources.displayMetrics.density).toInt()
@@ -58,21 +72,49 @@ class MainActivity : Activity() {
         menuDismiss = findViewById(R.id.menuDismiss)
 
         val plus = findViewById<View>(R.id.plus)
+        val calc = findViewById<View>(R.id.calc)
         val more = findViewById<View>(R.id.more)
         val done = findViewById<View>(R.id.done)
         status.setOnClickListener { pull.startRefresh() }
         plus.setOnClickListener { openSheet() }
+        calc.setOnClickListener { openConv() }
         more.setOnClickListener { openMenu() }
         done.setOnClickListener { closeSheet() }
-        scrim.setOnClickListener { closeSheet() }
+        scrim.setOnClickListener { if (convOpen) closeConv() else closeSheet() }
         sheet.setOnClickListener { }
         menuDismiss.setOnClickListener { closeMenu() }
+        findViewById<View>(R.id.mi_calc).setOnClickListener { closeMenu(); openConv() }
         findViewById<View>(R.id.mi_refresh).setOnClickListener { closeMenu(); pull.startRefresh() }
         findViewById<View>(R.id.mi_choose).setOnClickListener { closeMenu(); openSheet() }
         findViewById<View>(R.id.mi_all).setOnClickListener {
             closeMenu(); prefs().edit().remove("sel").apply(); render()
         }
-        bounce(plus, 0.8f); bounce(more, 0.8f); bounce(done, 0.9f)
+        bounce(plus, 0.8f); bounce(calc, 0.8f); bounce(more, 0.8f); bounce(done, 0.9f)
+
+        convSheet = findViewById(R.id.convSheet)
+        convFromBtn = findViewById(R.id.convFromBtn)
+        convToBtn = findViewById(R.id.convToBtn)
+        convInput = findViewById(R.id.convInput)
+        convResult = findViewById(R.id.convResult)
+        convPickerScroll = findViewById(R.id.convPickerScroll)
+        convPickerList = findViewById(R.id.convPickerList)
+        val convDone = findViewById<View>(R.id.convDone)
+        val convSwap = findViewById<View>(R.id.convSwap)
+        convSheet.setOnClickListener { }
+        convDone.setOnClickListener { closeConv() }
+        bounce(convDone, 0.9f)
+        convFromBtn.setOnClickListener { pickingFrom = true; showConvPicker() }
+        convToBtn.setOnClickListener { pickingFrom = false; showConvPicker() }
+        convSwap.setOnClickListener {
+            val tmp = convFrom; convFrom = convTo; convTo = tmp
+            convSwap.animate().rotationBy(180f).setDuration(260).setInterpolator(OvershootInterpolator(1.2f)).start()
+            updateConvUI()
+        }
+        convInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updateConvResult() }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
         val pill = findViewById<View>(R.id.pill)
         pill.translationY = dp(130).toFloat()
@@ -89,6 +131,7 @@ class MainActivity : Activity() {
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
         when {
+            convOpen -> closeConv()
             sheetOpen -> closeSheet()
             menuOpen -> closeMenu()
             else -> super.onBackPressed()
@@ -297,5 +340,85 @@ class MainActivity : Activity() {
         menuDismiss.visibility = View.GONE
         menuCard.animate().alpha(0f).scaleX(0.7f).scaleY(0.7f).setDuration(160)
             .withEndAction { menuCard.visibility = View.GONE }.start()
+    }
+
+    // ---------------- ماشین حساب تبدیل ارز ----------------
+    private fun labelFor(code: String): String {
+        if (code == "IRT") return "🇮🇷 IRT ▾"
+        val c = Rates.catalog.firstOrNull { it.code == code }
+        return if (c != null) "${c.icon} ${c.code} ▾" else "$code ▾"
+    }
+
+    private fun updateConvUI() {
+        convFromBtn.text = labelFor(convFrom)
+        convToBtn.text = labelFor(convTo)
+        updateConvResult()
+    }
+
+    private fun updateConvResult() {
+        val amt = convInput.text.toString().toDoubleOrNull() ?: 0.0
+        val res = Rates.convert(amt, convFrom, convTo, all)
+        convResult.text = if (res != null) Rates.formatConverted(res) else "---"
+    }
+
+    private fun showConvPicker() {
+        convPickerList.removeAllViews()
+        val items = listOf(Rates.Cat("IRT", "Iranian Toman", "🇮🇷", 0, Rates.CAT_FIAT)) + Rates.catalog
+        for (c in items) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(22), dp(10), dp(22), dp(10))
+            }
+            val icon = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(34), dp(34))
+                gravity = Gravity.CENTER
+                text = c.icon
+                textSize = 17f
+                setTextColor(-1)
+                if (c.bg != 0) setBackgroundResource(c.bg)
+            }
+            val col = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                val clp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                clp.marginStart = dp(12)
+                layoutParams = clp
+            }
+            val n = TextView(this).apply { text = c.name; textSize = 15f; setTextColor(-1) }
+            val k = TextView(this).apply { text = c.code; textSize = 11f; setTextColor(0xFF8E8E93.toInt()) }
+            col.addView(n); col.addView(k)
+            row.addView(icon); row.addView(col)
+            row.setOnClickListener {
+                if (pickingFrom) convFrom = c.code else convTo = c.code
+                convPickerScroll.visibility = View.GONE
+                updateConvUI()
+            }
+            convPickerList.addView(row)
+        }
+        convPickerScroll.visibility = View.VISIBLE
+        convPickerScroll.alpha = 0f
+        convPickerScroll.animate().alpha(1f).setDuration(200).start()
+    }
+
+    private fun openConv() {
+        if (convOpen) return
+        convOpen = true
+        convPickerScroll.visibility = View.GONE
+        updateConvUI()
+        sheetH = (resources.displayMetrics.heightPixels * 0.82f).toInt()
+        (convSheet.layoutParams as FrameLayout.LayoutParams).height = sheetH
+        convSheet.requestLayout()
+        scrim.visibility = View.VISIBLE; scrim.alpha = 0f
+        scrim.animate().alpha(1f).setDuration(280).start()
+        convSheet.visibility = View.VISIBLE; convSheet.translationY = sheetH.toFloat()
+        convSheet.animate().translationY(0f).setDuration(480).setInterpolator(DecelerateInterpolator(2.2f)).start()
+    }
+
+    private fun closeConv() {
+        if (!convOpen) return
+        convOpen = false
+        scrim.animate().alpha(0f).setDuration(240).withEndAction { scrim.visibility = View.GONE }.start()
+        convSheet.animate().translationY(sheetH.toFloat()).setDuration(300).setInterpolator(AccelerateInterpolator(1.6f))
+            .withEndAction { convSheet.visibility = View.GONE }.start()
     }
 }
